@@ -1,15 +1,30 @@
-name: smoke-trajectory-scan
+name: hle-failure-modes
 
 scanners:
-  - name: assistant_message_count
+  - name: hle_failure_mode
     file: scanners.py
 
-transcripts: logs/smoke
+
+transcripts: logs/hle-200
+
+# HLE's llm_grader records {"score": "C"|"I", "confidence": N}, so the incorrect
+# attempts are the ones whose score value contains "I". hle_failure_mode also
+# short-circuits on passing samples, so dropping this filter is safe — it just
+# writes a not_applicable row per correct sample.
+filter: score_llm_grader LIKE '%"I"%'
+
 scans: scans
 
-max_transcripts: 4
-max_processes: 1
+# Judge for the failure-mode scanner. HLE questions are hard, so a weak judge
+# will mislabel reasoning failures as knowledge failures; override per-run with
+# `--model` when comparing judges.
+model: openrouter/openai/gpt-5.6-terra
+generate_config:
+  max_connections: 20
+
+max_transcripts: 20
 log_level: warning
 
 tags:
-  - smoke
+  - hle
+  - failure-modes

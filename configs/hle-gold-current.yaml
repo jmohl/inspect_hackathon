@@ -1,0 +1,79 @@
+# The HLE-Verified gold questions that were present in the existing HLE-200
+# evals. This is intentionally an explicit sample list, not the full 668-item
+# gold subset.
+
+task:
+  task: inspect_evals/hle
+  args:
+    judge_prompt: original
+    include_multi_modal: false
+    category: null
+    subject: null
+    only_hle_verified_gold: false
+    rolling: false
+    max_grader_attempts: 3
+    graders: [grader]
+
+model_roles:
+  grader:
+    model: openrouter/google/gemini-3.6-flash
+    config:
+      temperature: 0
+      max_tokens: 16384
+
+eval_config:
+  sample_id:
+    - hle_693cc85a
+    - hle_a634e89e
+    - hle_8e8da0e1
+    - hle_6e17c515
+    - hle_0a1eec3f
+    - hle_daca4a08
+    - hle_02f2948c
+    - hle_b2fe92ea
+    - hle_09d83e17
+    - hle_1a236686
+    - hle_8a419425
+    - hle_9283e419
+    - hle_d5c58b84
+    - hle_ef5cb8c7
+    - hle_b3cd3b9f
+    - hle_75ca8e27
+    - hle_9c94313d
+    - hle_b15e8124
+    - hle_c8d745bc
+    - hle_4c209bb9
+    - hle_968461ee
+    - hle_d0ea1019
+    - hle_17ff8883
+    - hle_08a17217
+    - hle_27aaf124
+    - hle_b22283b9
+    - hle_23f764f4
+    - hle_d51cae40
+    - hle_3520010d
+    - hle_19fec070
+    - hle_74b26e9e
+    - hle_d0afd515
+    - hle_5e271b6d
+    - hle_8522708e
+    - hle_9d30e2d7
+    - hle_dd5dc604
+    - hle_f2512fbc
+    - hle_a84e922b
+    - hle_0b16b512
+    - hle_224c6746
+    - hle_8af7cb63
+    - hle_bfaa4941
+    - hle_ccdc0373
+    - hle_efab79c0
+    - hle_b32b9427
+    - hle_68031328
+    - hle_d6765f8f
+    - hle_39473cc9
+    - hle_8de2d9b7
+    - hle_742063b8
+    - hle_c8ad64cd
+    - hle_3b08a4a3
+    - hle_a6dc3588
+    - hle_a5aac1ca

@@ -1,4 +1,4 @@
-.PHONY: setup smoke scout-smoke hle-smoke hle hle-200 scout-hle scout-hle-200
+.PHONY: setup hle-smoke hle hle-200 scout-hle-failures
 
 export UV_CACHE_DIR := $(CURDIR)/.cache/uv
 export XDG_CACHE_HOME := $(CURDIR)/.runtime/cache
@@ -21,12 +21,6 @@ HLE_200_MODELS ?= openrouter/openai/gpt-5.6-luna \
 setup:
 	uv sync --locked
 
-smoke:
-	uv run inspect eval evals/smoke.py --model mockllm/model --log-dir logs/smoke
-
-scout-smoke:
-	uv run scout scan scout.yaml
-
 # Cheapest end-to-end check of the HLE wiring: 5 text-only questions, one judge
 # instead of the default two. Still downloads the full dataset on first run.
 hle-smoke:
@@ -48,9 +42,12 @@ hle-200:
 			--model $$m --log-dir logs/hle-200 || exit 1; \
 	done
 
-# Scan HLE transcripts with the scanners in scout.yaml, without repointing it.
-scout-hle:
-	uv run scout scan scout.yaml --transcripts logs/hle
-
-scout-hle-200:
-	uv run scout scan scout.yaml --transcripts logs/hle-200
+# Categorise why each incorrect HLE attempt failed, using the taxonomy in
+# label_descriptions.md. This calls a judge model once per failed sample, so
+# start with a small SCAN_LIMIT before scanning all of them:
+#   make scout-hle-failures SCAN_LIMIT=10
+#   make scout-hle-failures SCAN_MODEL=openrouter/openai/gpt-5-mini
+scout-hle-failures:
+	uv run scout scan scout.yaml \
+		$(if $(SCAN_MODEL),--model $(SCAN_MODEL),) \
+		$(if $(SCAN_LIMIT),--limit $(SCAN_LIMIT),)
