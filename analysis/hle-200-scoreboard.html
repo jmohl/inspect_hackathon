@@ -144,21 +144,36 @@
   }
   .bar:hover { opacity: 0.82; }
 
-  .trend-line {
+  .trend-line-closed, .trend-line-open {
     fill: none;
     stroke: var(--baseline);
     stroke-width: 2;
     stroke-linecap: round;
     stroke-linejoin: round;
   }
+  .trend-line-open {
+    stroke-dasharray: 5 5;
+  }
 
-  .marker {
-    stroke: var(--surface-1);
+  .marker-closed, .marker-open {
     stroke-width: 3;
     cursor: pointer;
     transition: r 0.12s ease;
   }
-  .marker-group:hover .marker { r: 9; }
+  .marker-closed { stroke: var(--surface-1); }
+  .marker-open { fill: var(--surface-1); }
+  .marker-group:hover .marker-closed,
+  .marker-group:hover .marker-open { r: 9; }
+
+  .legend-row {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    margin: 0 0 24px;
+    font-size: 12.5px;
+    color: var(--text-secondary);
+  }
+  .legend-row svg { width: 14px; height: 14px; flex: none; }
 
   .axis-title {
     font-family: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
@@ -257,18 +272,24 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500&display=swap">
 
 <div class="sheet">
-  <p class="eyebrow">Humanity's Last Exam &middot; closed-book</p>
+  <p class="eyebrow">Humanity's Last Exam &middot; closed-book vs. open-book</p>
   <h1>HLE-200 Scoreboard</h1>
   <p class="dek">
     HLE-200 accuracy against each model's <a href="https://epoch.ai/eci" style="color:inherit">Epoch Capabilities Index</a>
     (ECI), on the same fixed 200-question, text-only sample of HLE
     (<code>sample_shuffle: 42</code>, seeded from the pinned 2,500-question set —
-    see <code>configs/hle-200.yaml</code>), graded by a single judge
-    (<code>gemini-3.6-flash</code>, original judge prompt). No tools — closed-book only.
+    see <code>configs/hle-200.yaml</code>). Open-book runs add a Tavily
+    <code>web_search</code> tool (<code>evals/hle_web.py</code>); everything else
+    — questions, judge (<code>gemini-3.6-flash</code>, original prompt) — is identical.
   </p>
 
+  <div class="legend-row">
+    <span><svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="var(--text-secondary)"></circle></svg> Closed-book</span>
+    <span><svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="var(--surface-1)" stroke="var(--text-secondary)" stroke-width="2"></circle></svg> Open-book (web search)</span>
+  </div>
+
   <div class="chart-wrap" id="chartWrap">
-    <svg viewBox="0 0 520 340" role="img" aria-label="Line plot of HLE-200 accuracy vs ECI: gpt-4o (ECI 129) 2.5%, gpt-5-mini (ECI 144.19) 11.5%, gpt-5.6-luna (ECI 156) 23.5%">
+    <svg viewBox="0 0 520 340" role="img" aria-label="Line plot of HLE-200 accuracy vs ECI. Closed-book: gpt-4o (ECI 129) 2.5%, gpt-5-mini (ECI 144.19) 11.5%, gpt-5.6-luna (ECI 156) 23.5%. Open-book: gpt-4o 3.0%, gpt-5.6-luna 28.0% (gpt-5-mini's open-book run errored and is omitted)">
       <!-- horizontal gridlines -->
       <line class="grid-line" x1="64" y1="280" x2="500" y2="280"></line>
       <line class="grid-line" x1="64" y1="194.67" x2="500" y2="194.67"></line>
@@ -297,29 +318,40 @@
       <text class="tick-label" x="500" y="298" text-anchor="middle">160</text>
       <text class="axis-title" x="282" y="316" text-anchor="middle">ECI (Epoch Capabilities Index)</text>
 
-      <!-- trend line, ECI ascending -->
-      <polyline class="trend-line" points="162.1,258.7 327.7,181.9 456.4,79.5"></polyline>
+      <!-- trend lines, ECI ascending -->
+      <polyline class="trend-line-closed" points="156.1,258.7 321.7,181.9 450.4,79.5"></polyline>
+      <polyline class="trend-line-open" points="168.1,254.4 462.4,41.1"></polyline>
 
-      <!-- gpt-4o: ECI 129, 2.5% -->
-      <g class="marker-group" data-model="gpt-4o" data-eci="129" data-acc="2.5%" data-n="200">
-        <circle class="marker" cx="162.1" cy="258.7" r="7" fill="var(--series-4o)"></circle>
-        <text class="value-label" x="162.1" y="240" text-anchor="middle">2.5%</text>
-        <text class="cat-label" x="162.1" y="226" text-anchor="middle">gpt-4o</text>
+      <!-- gpt-4o closed: ECI 129, 2.5% -->
+      <g class="marker-group" data-model="gpt-4o" data-cond="closed-book" data-eci="129" data-acc="2.5%" data-n="200">
+        <circle class="marker-closed" cx="156.1" cy="258.7" r="7" fill="var(--series-4o)"></circle>
+        <text class="value-label" x="146.1" y="262.7" text-anchor="end">2.5%</text>
       </g>
+      <!-- gpt-4o open: ECI 129, 3.0% -->
+      <g class="marker-group" data-model="gpt-4o" data-cond="open-book" data-eci="129" data-acc="3.0%" data-n="200">
+        <circle class="marker-open" cx="168.1" cy="254.4" r="7" stroke="var(--series-4o)"></circle>
+        <text class="value-label" x="178.1" y="244.4" text-anchor="start">3.0%</text>
+      </g>
+      <text class="cat-label" x="162.1" y="230" text-anchor="middle">gpt-4o</text>
 
-      <!-- gpt-5-mini: ECI 144.19, 11.5% -->
-      <g class="marker-group" data-model="gpt-5-mini" data-eci="144.19" data-acc="11.5%" data-n="200">
-        <circle class="marker" cx="327.7" cy="181.9" r="7" fill="var(--series-mini)"></circle>
+      <!-- gpt-5-mini closed: ECI 144.19, 11.5% (no viable open-book run — errored) -->
+      <g class="marker-group" data-model="gpt-5-mini" data-cond="closed-book" data-eci="144.19" data-acc="11.5%" data-n="200">
+        <circle class="marker-closed" cx="327.7" cy="181.9" r="7" fill="var(--series-mini)"></circle>
         <text class="value-label" x="327.7" y="163" text-anchor="middle">11.5%</text>
         <text class="cat-label" x="327.7" y="149" text-anchor="middle">gpt-5-mini</text>
       </g>
 
-      <!-- gpt-5.6-luna: ECI 156, 23.5% -->
-      <g class="marker-group" data-model="gpt-5.6-luna" data-eci="156" data-acc="23.5%" data-n="200">
-        <circle class="marker" cx="456.4" cy="79.5" r="7" fill="var(--series-luna)"></circle>
-        <text class="value-label" x="456.4" y="61" text-anchor="middle">23.5%</text>
-        <text class="cat-label" x="456.4" y="47" text-anchor="middle">gpt-5.6-luna</text>
+      <!-- gpt-5.6-luna closed: ECI 156, 23.5% -->
+      <g class="marker-group" data-model="gpt-5.6-luna" data-cond="closed-book" data-eci="156" data-acc="23.5%" data-n="200">
+        <circle class="marker-closed" cx="450.4" cy="79.5" r="7" fill="var(--series-luna)"></circle>
+        <text class="value-label" x="440.4" y="93.5" text-anchor="end">23.5%</text>
       </g>
+      <!-- gpt-5.6-luna open: ECI 156, 28.0% -->
+      <g class="marker-group" data-model="gpt-5.6-luna" data-cond="open-book" data-eci="156" data-acc="28.0%" data-n="200">
+        <circle class="marker-open" cx="462.4" cy="41.1" r="7" stroke="var(--series-luna)"></circle>
+        <text class="value-label" x="472.4" y="45.1" text-anchor="start">28.0%</text>
+      </g>
+      <text class="cat-label" x="456.4" y="15" text-anchor="middle">gpt-5.6-luna</text>
     </svg>
     <div class="tooltip" id="tooltip"></div>
   </div>
@@ -332,7 +364,7 @@
   </p>
 
   <div class="chart-wrap" id="confWrap">
-    <svg viewBox="0 0 520 220" role="img" aria-label="Line plot of mean self-reported confidence vs ECI: gpt-4o (ECI 129) 84.7%, gpt-5-mini (ECI 144.19) 81.0%, gpt-5.6-luna (ECI 156) 89.5%">
+    <svg viewBox="0 0 520 220" role="img" aria-label="Line plot of mean self-reported confidence vs ECI. Closed-book: gpt-4o (ECI 129) 84.7%, gpt-5-mini (ECI 144.19) 81.0%, gpt-5.6-luna (ECI 156) 89.5%. Open-book: gpt-4o 86.7%, gpt-5.6-luna 89.7% (gpt-5-mini's open-book run errored and is omitted)">
       <!-- horizontal gridlines -->
       <line class="grid-line" x1="64" y1="160" x2="500" y2="160"></line>
       <line class="grid-line" x1="64" y1="126" x2="500" y2="126"></line>
@@ -363,29 +395,40 @@
       <text class="tick-label" x="500" y="178" text-anchor="middle">160</text>
       <text class="axis-title" x="282" y="196" text-anchor="middle">ECI (Epoch Capabilities Index)</text>
 
-      <!-- trend line, ECI ascending -->
-      <polyline class="trend-line" points="162.1,44.8 327.7,49.8 456.4,38.3"></polyline>
+      <!-- trend lines, ECI ascending -->
+      <polyline class="trend-line-closed" points="156.1,44.8 321.7,49.8 450.4,38.3"></polyline>
+      <polyline class="trend-line-open" points="168.1,42.09 462.4,38.0"></polyline>
 
-      <!-- gpt-4o: ECI 129, 84.7% -->
-      <g class="marker-group" data-model="gpt-4o" data-eci="129" data-conf="84.7%" data-n="200">
-        <circle class="marker" cx="162.1" cy="44.8" r="7" fill="var(--series-4o)"></circle>
-        <text class="value-label" x="162.1" y="26" text-anchor="middle">84.7%</text>
-        <text class="cat-label" x="162.1" y="12" text-anchor="middle">gpt-4o</text>
+      <!-- gpt-4o closed: ECI 129, 84.7% -->
+      <g class="marker-group" data-model="gpt-4o" data-cond="closed-book" data-eci="129" data-conf="84.7%" data-n="200">
+        <circle class="marker-closed" cx="156.1" cy="44.8" r="7" fill="var(--series-4o)"></circle>
+        <text class="value-label" x="146.1" y="58.8" text-anchor="end">84.7%</text>
       </g>
+      <!-- gpt-4o open: ECI 129, 86.7% -->
+      <g class="marker-group" data-model="gpt-4o" data-cond="open-book" data-eci="129" data-conf="86.7%" data-n="200">
+        <circle class="marker-open" cx="168.1" cy="42.09" r="7" stroke="var(--series-4o)"></circle>
+        <text class="value-label" x="178.1" y="56.09" text-anchor="start">86.7%</text>
+      </g>
+      <text class="cat-label" x="162.1" y="18" text-anchor="middle">gpt-4o</text>
 
-      <!-- gpt-5-mini: ECI 144.19, 81.0% -->
-      <g class="marker-group" data-model="gpt-5-mini" data-eci="144.19" data-conf="81.0%" data-n="200">
-        <circle class="marker" cx="327.7" cy="49.8" r="7" fill="var(--series-mini)"></circle>
+      <!-- gpt-5-mini closed: ECI 144.19, 81.0% (no viable open-book run — errored) -->
+      <g class="marker-group" data-model="gpt-5-mini" data-cond="closed-book" data-eci="144.19" data-conf="81.0%" data-n="200">
+        <circle class="marker-closed" cx="327.7" cy="49.8" r="7" fill="var(--series-mini)"></circle>
         <text class="value-label" x="327.7" y="72" text-anchor="middle">81.0%</text>
         <text class="cat-label" x="327.7" y="86" text-anchor="middle">gpt-5-mini</text>
       </g>
 
-      <!-- gpt-5.6-luna: ECI 156, 89.5% -->
-      <g class="marker-group" data-model="gpt-5.6-luna" data-eci="156" data-conf="89.5%" data-n="200">
-        <circle class="marker" cx="456.4" cy="38.3" r="7" fill="var(--series-luna)"></circle>
-        <text class="value-label" x="456.4" y="61" text-anchor="middle">89.5%</text>
-        <text class="cat-label" x="456.4" y="75" text-anchor="middle">gpt-5.6-luna</text>
+      <!-- gpt-5.6-luna closed: ECI 156, 89.5% -->
+      <g class="marker-group" data-model="gpt-5.6-luna" data-cond="closed-book" data-eci="156" data-conf="89.5%" data-n="200">
+        <circle class="marker-closed" cx="450.4" cy="38.3" r="7" fill="var(--series-luna)"></circle>
+        <text class="value-label" x="440.4" y="52.3" text-anchor="end">89.5%</text>
       </g>
+      <!-- gpt-5.6-luna open: ECI 156, 89.7% -->
+      <g class="marker-group" data-model="gpt-5.6-luna" data-cond="open-book" data-eci="156" data-conf="89.7%" data-n="200">
+        <circle class="marker-open" cx="462.4" cy="38.0" r="7" stroke="var(--series-luna)"></circle>
+        <text class="value-label" x="472.4" y="52.0" text-anchor="start">89.7%</text>
+      </g>
+      <text class="cat-label" x="456.4" y="14" text-anchor="middle">gpt-5.6-luna</text>
     </svg>
     <div class="tooltip" id="tooltipConf"></div>
   </div>
@@ -395,6 +438,7 @@
     <thead>
       <tr>
         <th>Model</th>
+        <th>Condition</th>
         <th class="num">ECI</th>
         <th class="num">Accuracy</th>
         <th class="num">Mean confidence</th>
@@ -402,16 +446,18 @@
       </tr>
     </thead>
     <tbody>
-      <tr><td><span class="dot" style="background:var(--series-4o)"></span>gpt-4o</td><td class="num">129.00</td><td class="num">2.5%</td><td class="num">84.7%</td><td class="num">200</td></tr>
-      <tr><td><span class="dot" style="background:var(--series-mini)"></span>gpt-5-mini</td><td class="num">144.19</td><td class="num">11.5%</td><td class="num">81.0%</td><td class="num">200</td></tr>
-      <tr><td><span class="dot" style="background:var(--series-luna)"></span>gpt-5.6-luna</td><td class="num">156.00</td><td class="num">23.5%</td><td class="num">89.5%</td><td class="num">200</td></tr>
+      <tr><td><span class="dot" style="background:var(--series-4o)"></span>gpt-4o</td><td>Closed-book</td><td class="num">129.00</td><td class="num">2.5%</td><td class="num">84.7%</td><td class="num">200</td></tr>
+      <tr><td><span class="dot" style="background:var(--series-4o)"></span>gpt-4o</td><td>Open-book</td><td class="num">129.00</td><td class="num">3.0%</td><td class="num">86.7%</td><td class="num">200</td></tr>
+      <tr><td><span class="dot" style="background:var(--series-mini)"></span>gpt-5-mini</td><td>Closed-book</td><td class="num">144.19</td><td class="num">11.5%</td><td class="num">81.0%</td><td class="num">200</td></tr>
+      <tr><td><span class="dot" style="background:var(--series-luna)"></span>gpt-5.6-luna</td><td>Closed-book</td><td class="num">156.00</td><td class="num">23.5%</td><td class="num">89.5%</td><td class="num">200</td></tr>
+      <tr><td><span class="dot" style="background:var(--series-luna)"></span>gpt-5.6-luna</td><td>Open-book</td><td class="num">156.00</td><td class="num">28.0%</td><td class="num">89.7%</td><td class="num">200</td></tr>
     </tbody>
   </table>
 
   <p class="foot">
-    Web-tool (open-book) runs against this same sample are in progress /
-    incomplete for two of the three models and are left out here rather than
-    shown partial.
+    <code>gpt-5-mini</code>'s open-book run errored mid-way (Tavily returned an
+    HTTP error that exhausted retries) and is omitted rather than shown
+    partial — its closed-book result stands alone on the chart.
   </p>
 </div>
 
@@ -438,10 +484,10 @@
     }
 
     wireTooltip("chartWrap", "tooltip", function (d) {
-      return d.model + "<br>ECI " + d.eci + "<br>acc " + d.acc + "<br>n=" + d.n;
+      return d.model + " · " + d.cond + "<br>ECI " + d.eci + "<br>acc " + d.acc + "<br>n=" + d.n;
     });
     wireTooltip("confWrap", "tooltipConf", function (d) {
-      return d.model + "<br>ECI " + d.eci + "<br>mean confidence " + d.conf + "<br>n=" + d.n;
+      return d.model + " · " + d.cond + "<br>ECI " + d.eci + "<br>mean confidence " + d.conf + "<br>n=" + d.n;
     });
   })();
 </script>
