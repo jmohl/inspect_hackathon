@@ -1,4 +1,4 @@
-.PHONY: setup smoke scout-smoke hle-smoke hle scout-hle
+.PHONY: setup smoke scout-smoke hle-smoke hle hle-200 scout-hle scout-hle-200
 
 export UV_CACHE_DIR := $(CURDIR)/.cache/uv
 export XDG_CACHE_HOME := $(CURDIR)/.runtime/cache
@@ -12,6 +12,11 @@ export HF_HOME := $(HOME)/.cache/huggingface
 # Model under test for the HLE targets. Override per-run, e.g.
 #   make hle-smoke MODEL=openrouter/openai/gpt-5-mini
 MODEL ?= openrouter/anthropic/claude-sonnet-5
+
+# Models compared by `hle-200`, run sequentially against configs/hle-200.yaml.
+HLE_200_MODELS ?= openrouter/openai/gpt-5.6-luna \
+                  openrouter/openai/gpt-5-mini \
+                  openrouter/openai/gpt-4o
 
 setup:
 	uv sync --locked
@@ -33,6 +38,19 @@ hle-smoke:
 hle:
 	uv run inspect eval inspect_evals/hle --model $(MODEL) --log-dir logs/hle
 
+# Three-model comparison on a seeded 200-question text-only subset, single
+# judge. All settings live in configs/hle-200.yaml; only the model varies, so
+# every model sees the same 200 questions.
+hle-200:
+	@for m in $(HLE_200_MODELS); do \
+		echo "=== HLE-200: $$m ==="; \
+		uv run inspect eval --run-config configs/hle-200.yaml \
+			--model $$m --log-dir logs/hle-200 || exit 1; \
+	done
+
 # Scan HLE transcripts with the scanners in scout.yaml, without repointing it.
 scout-hle:
 	uv run scout scan scout.yaml --transcripts logs/hle
+
+scout-hle-200:
+	uv run scout scan scout.yaml --transcripts logs/hle-200

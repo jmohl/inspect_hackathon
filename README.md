@@ -94,6 +94,37 @@ Both accept a `MODEL` override:
 make hle-smoke MODEL=openrouter/openai/gpt-5-mini
 ```
 
+### Config-driven runs
+
+[`configs/hle-200.yaml`](configs/hle-200.yaml) defines a 200-question,
+text-only, single-judge run so the settings live in version control rather than
+in shell history:
+
+```bash
+uv run inspect eval --run-config configs/hle-200.yaml \
+    --model openrouter/openai/gpt-5-mini --log-dir logs/hle-200
+```
+
+To compare the three models in sequence against that one config:
+
+```bash
+make hle-200
+```
+
+The config has no `model:` field on purpose. Inspect accepts exactly one model
+per run config, and multi-model runs need repeated `--model-spec`, which cannot
+be combined with a run-config `model` field — so the model is supplied per-run
+and everything else stays shared. Upstream's own HLE run configs omit `model`
+for the same reason. CLI flags override the file, so
+`--limit 1` is a quick way to test the config before committing to 200.
+
+The config sets `sample_shuffle: 42` rather than taking `--limit 200` alone.
+The first 200 questions in dataset order are skewed — 34% Math, 19% Computer
+Science/AI, 1% Chemistry, against a true 45% / 10% / 5% — so an unshuffled
+slice would not represent "all task types". The fixed seed draws a
+representative 200 and gives every model and every rerun the same 200
+questions.
+
 ### Reading the results
 
 - `original_accuracy` is the official HLE convention (counts unparseable
