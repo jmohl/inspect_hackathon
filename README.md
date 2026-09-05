@@ -41,6 +41,12 @@ Run a project eval by replacing `evals/smoke.py` and the model, for example:
 uv run inspect eval evals/my_eval.py --model openai/gpt-5-mini
 ```
 
+or if using OpenRouter:
+
+```bash
+uv run inspect eval inspect_evals/hle --model openrouter/openai/gpt-5-mini 
+```
+
 Installed Inspect Evals tasks can be addressed through their package paths:
 
 ```bash
