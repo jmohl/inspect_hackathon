@@ -1,0 +1,447 @@
+<title>HLE-200 Scoreboard</title>
+<style>
+  :root {
+    color-scheme: light;
+    --surface-1:      #fcfcfb;
+    --page-plane:     #f9f9f7;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --grid:           #e1e0d9;
+    --baseline:       #c3c2b7;
+    --border:         rgba(11,11,11,0.10);
+    --series-luna:    #2a78d6;
+    --series-mini:    #eb6834;
+    --series-4o:      #1baf7a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --surface-1:      #1a1a19;
+      --page-plane:     #0d0d0d;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:     #898781;
+      --grid:           #2c2c2a;
+      --baseline:       #383835;
+      --border:         rgba(255,255,255,0.10);
+      --series-luna:    #3987e5;
+      --series-mini:    #d95926;
+      --series-4o:      #199e70;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface-1:      #1a1a19;
+    --page-plane:     #0d0d0d;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #898781;
+    --grid:           #2c2c2a;
+    --baseline:       #383835;
+    --border:         rgba(255,255,255,0.10);
+    --series-luna:    #3987e5;
+    --series-mini:    #d95926;
+    --series-4o:      #199e70;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--page-plane);
+    color: var(--text-primary);
+    font-family: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    padding: 48px 24px 64px;
+  }
+
+  .sheet {
+    max-width: 720px;
+    margin: 0 auto;
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 40px 44px 36px;
+  }
+
+  .eyebrow {
+    font-family: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin: 0 0 10px;
+  }
+
+  h1 {
+    font-family: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin: 0 0 10px;
+    text-wrap: balance;
+  }
+
+  .dek {
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    max-width: 62ch;
+    margin: 0 0 32px;
+  }
+
+  .dek code {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.92em;
+    background: var(--grid);
+    padding: 0.1em 0.35em;
+    border-radius: 3px;
+  }
+
+  .chart-wrap {
+    position: relative;
+    margin-bottom: 8px;
+  }
+
+  svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+
+  .grid-line {
+    stroke: var(--grid);
+    stroke-width: 1;
+  }
+
+  .axis-line {
+    stroke: var(--baseline);
+    stroke-width: 1;
+  }
+
+  .tick-label {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11px;
+    fill: var(--text-muted);
+  }
+
+  .cat-label {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 12px;
+    fill: var(--text-secondary);
+  }
+
+  .value-label {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 13px;
+    font-weight: 600;
+    fill: var(--text-primary);
+  }
+
+  .bar {
+    cursor: pointer;
+    transition: opacity 0.12s ease;
+  }
+  .bar:hover { opacity: 0.82; }
+
+  .trend-line {
+    fill: none;
+    stroke: var(--baseline);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .marker {
+    stroke: var(--surface-1);
+    stroke-width: 3;
+    cursor: pointer;
+    transition: r 0.12s ease;
+  }
+  .marker-group:hover .marker { r: 9; }
+
+  .axis-title {
+    font-family: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+    font-size: 11px;
+    fill: var(--text-muted);
+    letter-spacing: 0.04em;
+  }
+
+  .panel-label {
+    font-family: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin: 36px 0 4px;
+  }
+
+  .panel-dek {
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    max-width: 62ch;
+    margin: 0 0 20px;
+  }
+
+  .dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+
+  .tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: var(--text-primary);
+    color: var(--surface-1);
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    padding: 8px 10px;
+    border-radius: 6px;
+    opacity: 0;
+    transform: translate(-50%, -100%);
+    transition: opacity 0.1s ease;
+    white-space: nowrap;
+    z-index: 10;
+  }
+  .tooltip.visible { opacity: 1; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 28px;
+    font-size: 13px;
+  }
+  caption {
+    text-align: left;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+  th, td {
+    text-align: left;
+    padding: 9px 10px;
+    border-bottom: 1px solid var(--grid);
+  }
+  th {
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 11.5px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+  td.num, th.num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+  }
+  tr:last-child td { border-bottom: none; }
+
+  .foot {
+    margin-top: 24px;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--text-muted);
+  }
+</style>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500&display=swap">
+
+<div class="sheet">
+  <p class="eyebrow">Humanity's Last Exam &middot; closed-book</p>
+  <h1>HLE-200 Scoreboard</h1>
+  <p class="dek">
+    HLE-200 accuracy against each model's <a href="https://epoch.ai/eci" style="color:inherit">Epoch Capabilities Index</a>
+    (ECI), on the same fixed 200-question, text-only sample of HLE
+    (<code>sample_shuffle: 42</code>, seeded from the pinned 2,500-question set —
+    see <code>configs/hle-200.yaml</code>), graded by a single judge
+    (<code>gemini-3.6-flash</code>, original judge prompt). No tools — closed-book only.
+  </p>
+
+  <div class="chart-wrap" id="chartWrap">
+    <svg viewBox="0 0 520 340" role="img" aria-label="Line plot of HLE-200 accuracy vs ECI: gpt-4o (ECI 129) 2.5%, gpt-5-mini (ECI 144.19) 11.5%, gpt-5.6-luna (ECI 156) 23.5%">
+      <!-- horizontal gridlines -->
+      <line class="grid-line" x1="64" y1="280" x2="500" y2="280"></line>
+      <line class="grid-line" x1="64" y1="194.67" x2="500" y2="194.67"></line>
+      <line class="grid-line" x1="64" y1="109.33" x2="500" y2="109.33"></line>
+      <line class="grid-line" x1="64" y1="24" x2="500" y2="24"></line>
+
+      <!-- vertical gridlines (ECI 120/130/140/150/160) -->
+      <line class="grid-line" x1="64" y1="24" x2="64" y2="280"></line>
+      <line class="grid-line" x1="173" y1="24" x2="173" y2="280"></line>
+      <line class="grid-line" x1="282" y1="24" x2="282" y2="280"></line>
+      <line class="grid-line" x1="391" y1="24" x2="391" y2="280"></line>
+      <line class="grid-line" x1="500" y1="24" x2="500" y2="280"></line>
+
+      <!-- y ticks -->
+      <text class="tick-label" x="56" y="284" text-anchor="end">0%</text>
+      <text class="tick-label" x="56" y="198.67" text-anchor="end">10%</text>
+      <text class="tick-label" x="56" y="113.33" text-anchor="end">20%</text>
+      <text class="tick-label" x="56" y="28" text-anchor="end">30%</text>
+
+      <!-- baseline + x ticks -->
+      <line class="axis-line" x1="64" y1="280" x2="500" y2="280"></line>
+      <text class="tick-label" x="64" y="298" text-anchor="middle">120</text>
+      <text class="tick-label" x="173" y="298" text-anchor="middle">130</text>
+      <text class="tick-label" x="282" y="298" text-anchor="middle">140</text>
+      <text class="tick-label" x="391" y="298" text-anchor="middle">150</text>
+      <text class="tick-label" x="500" y="298" text-anchor="middle">160</text>
+      <text class="axis-title" x="282" y="316" text-anchor="middle">ECI (Epoch Capabilities Index)</text>
+
+      <!-- trend line, ECI ascending -->
+      <polyline class="trend-line" points="162.1,258.7 327.7,181.9 456.4,79.5"></polyline>
+
+      <!-- gpt-4o: ECI 129, 2.5% -->
+      <g class="marker-group" data-model="gpt-4o" data-eci="129" data-acc="2.5%" data-n="200">
+        <circle class="marker" cx="162.1" cy="258.7" r="7" fill="var(--series-4o)"></circle>
+        <text class="value-label" x="162.1" y="240" text-anchor="middle">2.5%</text>
+        <text class="cat-label" x="162.1" y="226" text-anchor="middle">gpt-4o</text>
+      </g>
+
+      <!-- gpt-5-mini: ECI 144.19, 11.5% -->
+      <g class="marker-group" data-model="gpt-5-mini" data-eci="144.19" data-acc="11.5%" data-n="200">
+        <circle class="marker" cx="327.7" cy="181.9" r="7" fill="var(--series-mini)"></circle>
+        <text class="value-label" x="327.7" y="163" text-anchor="middle">11.5%</text>
+        <text class="cat-label" x="327.7" y="149" text-anchor="middle">gpt-5-mini</text>
+      </g>
+
+      <!-- gpt-5.6-luna: ECI 156, 23.5% -->
+      <g class="marker-group" data-model="gpt-5.6-luna" data-eci="156" data-acc="23.5%" data-n="200">
+        <circle class="marker" cx="456.4" cy="79.5" r="7" fill="var(--series-luna)"></circle>
+        <text class="value-label" x="456.4" y="61" text-anchor="middle">23.5%</text>
+        <text class="cat-label" x="456.4" y="47" text-anchor="middle">gpt-5.6-luna</text>
+      </g>
+    </svg>
+    <div class="tooltip" id="tooltip"></div>
+  </div>
+
+  <p class="panel-label">Model-stated confidence</p>
+  <p class="panel-dek">
+    HLE's prompt requires every answer to end with a self-rated confidence
+    (0&ndash;100%). This is the model's own stated certainty, not the judge's —
+    shown on its own 0&ndash;100% scale since it isn't the same measure as accuracy.
+  </p>
+
+  <div class="chart-wrap" id="confWrap">
+    <svg viewBox="0 0 520 220" role="img" aria-label="Line plot of mean self-reported confidence vs ECI: gpt-4o (ECI 129) 84.7%, gpt-5-mini (ECI 144.19) 81.0%, gpt-5.6-luna (ECI 156) 89.5%">
+      <!-- horizontal gridlines -->
+      <line class="grid-line" x1="64" y1="160" x2="500" y2="160"></line>
+      <line class="grid-line" x1="64" y1="126" x2="500" y2="126"></line>
+      <line class="grid-line" x1="64" y1="92" x2="500" y2="92"></line>
+      <line class="grid-line" x1="64" y1="58" x2="500" y2="58"></line>
+      <line class="grid-line" x1="64" y1="24" x2="500" y2="24"></line>
+
+      <!-- vertical gridlines (ECI 120/130/140/150/160) -->
+      <line class="grid-line" x1="64" y1="24" x2="64" y2="160"></line>
+      <line class="grid-line" x1="173" y1="24" x2="173" y2="160"></line>
+      <line class="grid-line" x1="282" y1="24" x2="282" y2="160"></line>
+      <line class="grid-line" x1="391" y1="24" x2="391" y2="160"></line>
+      <line class="grid-line" x1="500" y1="24" x2="500" y2="160"></line>
+
+      <!-- y ticks -->
+      <text class="tick-label" x="56" y="164" text-anchor="end">0%</text>
+      <text class="tick-label" x="56" y="130" text-anchor="end">25%</text>
+      <text class="tick-label" x="56" y="96" text-anchor="end">50%</text>
+      <text class="tick-label" x="56" y="62" text-anchor="end">75%</text>
+      <text class="tick-label" x="56" y="28" text-anchor="end">100%</text>
+
+      <!-- baseline + x ticks -->
+      <line class="axis-line" x1="64" y1="160" x2="500" y2="160"></line>
+      <text class="tick-label" x="64" y="178" text-anchor="middle">120</text>
+      <text class="tick-label" x="173" y="178" text-anchor="middle">130</text>
+      <text class="tick-label" x="282" y="178" text-anchor="middle">140</text>
+      <text class="tick-label" x="391" y="178" text-anchor="middle">150</text>
+      <text class="tick-label" x="500" y="178" text-anchor="middle">160</text>
+      <text class="axis-title" x="282" y="196" text-anchor="middle">ECI (Epoch Capabilities Index)</text>
+
+      <!-- trend line, ECI ascending -->
+      <polyline class="trend-line" points="162.1,44.8 327.7,49.8 456.4,38.3"></polyline>
+
+      <!-- gpt-4o: ECI 129, 84.7% -->
+      <g class="marker-group" data-model="gpt-4o" data-eci="129" data-conf="84.7%" data-n="200">
+        <circle class="marker" cx="162.1" cy="44.8" r="7" fill="var(--series-4o)"></circle>
+        <text class="value-label" x="162.1" y="26" text-anchor="middle">84.7%</text>
+        <text class="cat-label" x="162.1" y="12" text-anchor="middle">gpt-4o</text>
+      </g>
+
+      <!-- gpt-5-mini: ECI 144.19, 81.0% -->
+      <g class="marker-group" data-model="gpt-5-mini" data-eci="144.19" data-conf="81.0%" data-n="200">
+        <circle class="marker" cx="327.7" cy="49.8" r="7" fill="var(--series-mini)"></circle>
+        <text class="value-label" x="327.7" y="72" text-anchor="middle">81.0%</text>
+        <text class="cat-label" x="327.7" y="86" text-anchor="middle">gpt-5-mini</text>
+      </g>
+
+      <!-- gpt-5.6-luna: ECI 156, 89.5% -->
+      <g class="marker-group" data-model="gpt-5.6-luna" data-eci="156" data-conf="89.5%" data-n="200">
+        <circle class="marker" cx="456.4" cy="38.3" r="7" fill="var(--series-luna)"></circle>
+        <text class="value-label" x="456.4" y="61" text-anchor="middle">89.5%</text>
+        <text class="cat-label" x="456.4" y="75" text-anchor="middle">gpt-5.6-luna</text>
+      </g>
+    </svg>
+    <div class="tooltip" id="tooltipConf"></div>
+  </div>
+
+  <table>
+    <caption>Full results</caption>
+    <thead>
+      <tr>
+        <th>Model</th>
+        <th class="num">ECI</th>
+        <th class="num">Accuracy</th>
+        <th class="num">Mean confidence</th>
+        <th class="num">n</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td><span class="dot" style="background:var(--series-4o)"></span>gpt-4o</td><td class="num">129.00</td><td class="num">2.5%</td><td class="num">84.7%</td><td class="num">200</td></tr>
+      <tr><td><span class="dot" style="background:var(--series-mini)"></span>gpt-5-mini</td><td class="num">144.19</td><td class="num">11.5%</td><td class="num">81.0%</td><td class="num">200</td></tr>
+      <tr><td><span class="dot" style="background:var(--series-luna)"></span>gpt-5.6-luna</td><td class="num">156.00</td><td class="num">23.5%</td><td class="num">89.5%</td><td class="num">200</td></tr>
+    </tbody>
+  </table>
+
+  <p class="foot">
+    Web-tool (open-book) runs against this same sample are in progress /
+    incomplete for two of the three models and are left out here rather than
+    shown partial.
+  </p>
+</div>
+
+<script>
+  (function () {
+    function wireTooltip(wrapId, tooltipId, formatter) {
+      var wrap = document.getElementById(wrapId);
+      var tooltip = document.getElementById(tooltipId);
+      var groups = wrap.querySelectorAll(".marker-group");
+      groups.forEach(function (g) {
+        g.addEventListener("mouseenter", function () {
+          tooltip.innerHTML = formatter(g.dataset);
+          tooltip.classList.add("visible");
+        });
+        g.addEventListener("mousemove", function (e) {
+          var rect = wrap.getBoundingClientRect();
+          tooltip.style.left = (e.clientX - rect.left) + "px";
+          tooltip.style.top = (e.clientY - rect.top - 10) + "px";
+        });
+        g.addEventListener("mouseleave", function () {
+          tooltip.classList.remove("visible");
+        });
+      });
+    }
+
+    wireTooltip("chartWrap", "tooltip", function (d) {
+      return d.model + "<br>ECI " + d.eci + "<br>acc " + d.acc + "<br>n=" + d.n;
+    });
+    wireTooltip("confWrap", "tooltipConf", function (d) {
+      return d.model + "<br>ECI " + d.eci + "<br>mean confidence " + d.conf + "<br>n=" + d.n;
+    });
+  })();
+</script>
