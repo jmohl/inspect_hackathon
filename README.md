@@ -41,8 +41,69 @@ Run a project eval by replacing `evals/smoke.py` and the model, for example:
 uv run inspect eval evals/my_eval.py --model openai/gpt-5-mini
 ```
 
-Installed Inspect Evals tasks can be addressed through their package paths;
-consult the task's README for its arguments, dataset access, and sandbox needs.
+Installed Inspect Evals tasks can be addressed through their package paths:
+
+```bash
+uv run inspect eval inspect_evals/hellaswag \
+  --model openai/gpt-5-mini \
+  --limit 10
+```
+
+Consult each task's README for its arguments, dataset access, and sandbox needs.
+
+## Humanity's Last Exam (HLE)
+
+[HLE](https://inspect.aisi.org.uk/evals/#/eval/hle) is installed as part of
+Inspect Evals and is addressed directly as `inspect_evals/hle` — no wrapper task
+file is needed. It needs two credentials in `.env`:
+
+- `OPENROUTER_API_KEY` — for the model under test *and* for the two default
+  judges (`google/gemma-4-31b-it` and `google/gemini-3.6-flash`), which run
+  through OpenRouter regardless of which model is being evaluated.
+- `HF_TOKEN` — the `cais/hle` dataset is gated. Accept the terms at
+  <https://huggingface.co/datasets/cais/hle> while logged in, then put a read
+  token in `.env`.
+
+Use `HF_TOKEN` in `.env` rather than `huggingface-cli login`: the Make targets
+set `XDG_CACHE_HOME`, so a token written to `~/.cache/huggingface/token` would
+not be found under `make`. For the same reason the Makefile pins `HF_HOME` back
+to `~/.cache/huggingface`, so `make` and a bare `uv run` share one copy of the
+274MB dataset instead of downloading it twice.
+
+Cheapest end-to-end check — 5 text-only questions, one judge instead of two:
+
+```bash
+make hle-smoke
+```
+
+The full 2,500-question run with the default two-judge scoring:
+
+```bash
+make hle
+```
+
+Both accept a `MODEL` override:
+
+```bash
+make hle-smoke MODEL=openrouter/openai/gpt-5-mini
+```
+
+### Reading the results
+
+- `original_accuracy` is the official HLE convention (counts unparseable
+  judgments as incorrect). `score/accuracy` excludes them, so the two differ
+  whenever `unscored` > 0.
+- `cerr` is **not** comparable with the leaderboard's Calibration Error — the
+  official implementation drops the top-confidence bin, roughly halving it.
+- Each judge is a separate score column (`llm_grader`, `llm_grader1`); they are
+  never voted or averaged against each other, and each one multiplies judging
+  cost. `-T graders=grader` runs a single judge.
+
+For reasoning models, keep the completion budget at or above 8192 tokens —
+below that, reasoning consumes the budget and the visible answer comes back
+empty. Other useful task args: `-T include_multi_modal=false` for the 2,158
+text-only questions, `-T category=Math` to subset, and
+`-T judge_prompt=grade_c_i` if a judge cannot do JSON-schema structured output.
 
 ## Verify Scout
 
@@ -54,7 +115,13 @@ make scout-smoke
 ```
 
 Edit `scout.yaml` to point `transcripts` at other `.eval` files or log
-directories and add scanners from `scanners.py`. For an LLM-backed scanner,
+directories and add scanners from `scanners.py`. To scan the HLE transcripts
+without repointing the config, override the source on the command line:
+
+```bash
+make scout-hle
+```
+ For an LLM-backed scanner,
 also set `model` in `scout.yaml` (or pass `--model`) and provide its API key.
 
 Useful commands:

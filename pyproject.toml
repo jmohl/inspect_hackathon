@@ -7,6 +7,10 @@ dependencies = [
     "inspect-ai==0.3.260",
     "inspect-evals",
     "inspect-scout",
+    # required by inspect_ai's OpenRouter provider (it imports openai.types.chat);
+    # HLE's default graders run through OpenRouter, so it is needed even when the
+    # model under test is not an OpenAI model.
+    "openai",
 ]
 
 [tool.uv.sources]
