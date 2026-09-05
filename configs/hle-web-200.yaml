@@ -1,0 +1,36 @@
+# HLE-with-web-search: same 200-question sample as configs/hle-200.yaml, but
+# routed through evals/hle_web.py (adds a Tavily web_search tool to the
+# solver). Scores are NOT comparable to inspect_evals/hle runs -- open-book
+# vs. closed-book is a different task, not just a different config.
+#
+# Same reasoning as hle-200.yaml for omitting `model:` -- supply on the CLI:
+#
+#   uv run inspect eval --run-config configs/hle-web-200.yaml \
+#       --model openrouter/openai/gpt-4o --log-dir logs/hle-web-200
+
+task:
+  task: evals/hle_web.py@hle_web
+  args:
+    judge_prompt: original          # official judge prompt + structured output
+    include_multi_modal: false      # text-only: the 2,158-question subset
+    category: null                  # all categories
+    subject: null                   # all subjects
+    only_hle_verified_gold: false   # default mode, not the HLE-Verified gold subset
+    rolling: false                  # static 2,500-question set
+    max_grader_attempts: 3
+    graders: [grader]               # single judge
+
+model_roles:
+  # Single judge. Settings match configs/hle-200.yaml's grader stanza.
+  grader:
+    model: openrouter/google/gemini-3.6-flash
+    config:
+      temperature: 0
+      max_tokens: 16384
+
+eval_config:
+  limit: 200
+  # Same fixed seed as hle-200.yaml -- this must match exactly, or the 200
+  # questions drawn won't be the same ones the prior gpt-4o/luna runs used,
+  # and the open-book vs. closed-book comparison stops being apples-to-apples.
+  sample_shuffle: 42
