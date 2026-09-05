@@ -1,0 +1,14 @@
+[project]
+name = "inspect-hackathon"
+version = "0.1.0"
+description = "Inspect Evals and Inspect Scout workspace"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "inspect-ai==0.3.260",
+    "inspect-evals",
+    "inspect-scout",
+]
+
+[tool.uv.sources]
+inspect-evals = { git = "https://github.com/UKGovernmentBEIS/inspect_evals.git", rev = "32b79a244f17ecf54fa1186d30f33dc10143c10f" }
+inspect-scout = { git = "https://github.com/meridianlabs-ai/inspect_scout.git", rev = "63b481d64db14b98fb476b0071827f1d41b3c96d" }

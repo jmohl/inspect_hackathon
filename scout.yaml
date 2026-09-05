@@ -1,0 +1,15 @@
+name: smoke-trajectory-scan
+
+scanners:
+  - name: assistant_message_count
+    file: scanners.py
+
+transcripts: logs/smoke
+scans: scans
+
+max_transcripts: 4
+max_processes: 1
+log_level: warning
+
+tags:
+  - smoke
