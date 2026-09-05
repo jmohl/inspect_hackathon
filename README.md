@@ -23,19 +23,12 @@ source .venv/bin/activate
 For a real model, copy `.env.example` to `.env` and add the key for the model
 provider you use. `.env` is ignored by Git.
 
-## Verify Inspect
-
-The included smoke eval uses Inspect's mock model name and a deterministic local
-solver, so it needs no API key, model call, or network access after setup:
-
-```bash
-make smoke
-```
+## Run an eval
 
 The Make targets keep uv caches, Inspect traces, and Scout bookkeeping in the
 ignored `.cache/` and `.runtime/` directories.
 
-Run a project eval by replacing `evals/smoke.py` and the model, for example:
+Run a project eval from `evals/`, for example:
 
 ```bash
 uv run inspect eval evals/my_eval.py --model openai/gpt-5-mini
@@ -142,24 +135,83 @@ empty. Other useful task args: `-T include_multi_modal=false` for the 2,158
 text-only questions, `-T category=Math` to subset, and
 `-T judge_prompt=grade_c_i` if a judge cannot do JSON-schema structured output.
 
-## Verify Scout
+## Categorising HLE failure modes
 
-After `make smoke` has written a transcript under `logs/smoke/`, run the included
-non-LLM scanner:
+[`scout.yaml`](scout.yaml) is the one Scout config: it defines the scan job and
+doubles as Scout's project-level defaults. It points at `logs/hle-200`, filters
+to the incorrect attempts, and names the judge model. Override any of it on the
+command line (`--transcripts`, `--model`, `--limit`).
+
+[`scanners.py`](scanners.py) contains `hle_failure_mode`, an LLM scanner that
+labels *why* each incorrect HLE attempt failed, using the taxonomy in
+[`label_descriptions.md`](label_descriptions.md):
+
+| Category | Short form |
+| --- | --- |
+| `judge_failure` | acceptable answer, wrongly rejected |
+| `incorrect_reference_answer` | the benchmark's answer is itself defective |
+| `tool_or_environment_failure` | a tool or resource was broken or unavailable |
+| `resource_limit` | a token/time/context/tool-call limit fired |
+| `answer_format_failure` | right answer, wrong output format |
+| `ambiguous_or_defective_prompt` | question does not pin down one answer |
+| `reasoning_failure` | identifiable error of inference or calculation |
+| `knowledge_failure` | missing, misrecalled, or fabricated fact |
+| `undetermined` | record does not support a specific cause |
+
+Run it over `logs/hle-200`:
 
 ```bash
-make scout-smoke
+make scout-hle-failures SCAN_LIMIT=10   # trial run
+make scout-hle-failures                 # all incorrect samples
 ```
 
-Edit `scout.yaml` to point `transcripts` at other `.eval` files or log
-directories and add scanners from `scanners.py`. To scan the HLE transcripts
-without repointing the config, override the source on the command line:
+`SCAN_MODEL=` overrides the judge set in [`scout.yaml`](scout.yaml).
+The judge answers through a structured-output tool call, so it needs a real
+tool-calling model — `mockllm/model` produces no results.
 
-```bash
-make scout-hle
+### What the judge sees
+
+Scout renders the message thread into the prompt, and
+[`scanner_utils.py`](scanner_utils.py) assembles everything that is *not* in
+the thread: the system prompt (Scout's default preprocessor strips it, and it
+carries the `Explanation:/Answer:/Confidence:` format requirement), the
+reference answer, the question author's `rationale` (the strongest evidence for
+telling a defective reference answer apart from a model error), the
+`llm_grader` verdict including the answer the judge extracted and its
+reasoning, and deterministic execution signals.
+
+The scanner requests events — they are the only place a `max_tokens`
+truncation or the grader's raw output appears — but hands `llm_scanner` a copy
+with the events removed. With events attached, Scout renders `{{ messages }}`
+from a timeline built out of them, which leaves the question as an unresolved
+`attachment://` reference and can substitute the grader's own model call for
+the attempt's response.
+
+Attempts that passed short-circuit to `not_applicable` without a model call, so
+the scanner is safe to point at a whole log. The `filter` in `scout.yaml`
+restricts the scan to incorrect samples anyway, and only exists to avoid
+writing those extra rows.
+
+### Reading the results
+
+`value` is the primary category; `metadata` holds `secondary_categories`,
+`confidence`, and `evidence`; `explanation` cites `[M#]` message ids that
+resolve to transcript links in `scout view`.
+
+```python
+from inspect_scout import scan_results_df
+
+results = scan_results_df("scans/scan_id=...")
+df = results.scanners["hle_failure_mode"]
+df.groupby(["transcript_model", "value"]).size()
 ```
- For an LLM-backed scanner,
-also set `model` in `scout.yaml` (or pass `--model`) and provide its API key.
+
+`hle_failure_signals` is the free, model-free companion scanner. It reports
+only deterministic evidence — a fired limit, a truncated generation, a tool
+error, an empty response, a judge that extracted nothing — as a comma-separated
+`value` (or `none`). Join it against `hle_failure_mode` to check that
+`resource_limit` and `tool_or_environment_failure` verdicts are backed by an
+actual limit or tool error.
 
 Useful commands:
 

@@ -10,6 +10,7 @@ dependencies = [
     # required by inspect_ai's OpenRouter provider (it imports openai.types.chat);
     # HLE's default graders run through OpenRouter, so it is needed even when the
     # model under test is not an OpenAI model.
+    "jupyterlab>=4.6.3",
     "openai",
 ]
 
