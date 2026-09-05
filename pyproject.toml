@@ -11,6 +11,7 @@ dependencies = [
     # HLE's default graders run through OpenRouter, so it is needed even when the
     # model under test is not an OpenAI model.
     "jupyterlab>=4.6.3",
+    "matplotlib>=3.10.6",
     "openai",
 ]
 
